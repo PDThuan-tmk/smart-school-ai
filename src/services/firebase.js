@@ -5,7 +5,7 @@ import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA_Lkk7_PLO3ZlYrr1ZycZQIq7smjg0H94",
-  authDomain: "smart-school-ai-a17f6.firebaseapp.com",
+  authDomain: "smart-school-ai-dt.vercel.app",
   projectId: "smart-school-ai-a17f6",
   storageBucket: "smart-school-ai-a17f6.appspot.com",
   messagingSenderId: "147045651397",
