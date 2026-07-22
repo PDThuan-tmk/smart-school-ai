@@ -1,6 +1,7 @@
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../services/firebase";
 import { useNavigate } from "react-router-dom";
+import { useState } from 'react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -56,4 +57,30 @@ export default function Login() {
 
   );
 
+}
+function LoginUI() {
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    if (loading) return; // Nếu đang xử lý thì không cho bấm tiếp
+    setLoading(true);
+
+    try {
+      await signInWithPopup(auth, provider);
+      // Đăng nhập thành công
+    } catch (error) {
+      // Nếu người dùng lỡ hủy hoặc gặp lỗi thì chỉ log ra, tránh hiện alert gây phiền
+      if (error.code !== 'auth/cancelled-popup-request') {
+        console.error(error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button onClick={handleGoogleLogin} disabled={loading}>
+      {loading ? 'Đang đăng nhập...' : 'Đăng nhập bằng Google'}
+    </button>
+  );
 }
