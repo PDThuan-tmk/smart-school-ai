@@ -1,5 +1,9 @@
-import { useState } from 'react';
-import { signInWithPopup } from 'firebase/auth';
+import { useEffect, useState } from 'react';
+import { 
+  signInWithRedirect, 
+  getRedirectResult, 
+  signInWithPopup 
+} from 'firebase/auth';
 import { auth, provider } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,24 +11,46 @@ export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
+  // 1. Kiểm tra kết quả sau khi điện thoại nhảy về lại từ trang auth handler
+  useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          console.log('Đăng nhập thành công từ Redirect:', result.user);
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Lỗi sau khi redirect:', error);
+      }
+    };
+    checkRedirect();
+  }, [navigate]);
+
+  // 2. Hàm đăng nhập linh hoạt (Tự nhận biết Máy tính hay Điện thoại)
   const handleGoogleLogin = async () => {
-    if (loading) return; // Tránh bấm nhiều lần liên tiếp
+    if (loading) return;
     setLoading(true);
 
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
     try {
-      const result = await signInWithPopup(auth, provider);
-      console.log('Đăng nhập thành công:', result.user);
-      
-      // Chuyển hướng sang trang Dashboard
-      navigate('/dashboard');
+      if (isMobile) {
+        // Trên điện thoại: Dùng Redirect để tránh bị chặn Popup/Cookie
+        await signInWithRedirect(auth, provider);
+      } else {
+        // Trên máy tính: Dùng Popup cho nhanh
+        const result = await signInWithPopup(auth, provider);
+        if (result) {
+          navigate('/dashboard');
+        }
+      }
     } catch (error) {
-      // Bỏ qua nếu người dùng tự đóng popup hoặc bấm hủy request
       if (
         error.code !== 'auth/cancelled-popup-request' &&
         error.code !== 'auth/popup-closed-by-user'
       ) {
         console.error('Lỗi đăng nhập:', error);
-        alert('Đăng nhập thất bại: ' + error.message);
       }
     } finally {
       setLoading(false);
