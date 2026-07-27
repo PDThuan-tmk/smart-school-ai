@@ -11,7 +11,7 @@ export default function CesiumMap() {
     useEffect(() => {
 
         Cesium.Ion.defaultAccessToken =
-            eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzN2YwODlkNS1jZjA5LTQ0ZjItOTczOC04ZjlhMWU5Zjc5ZTQiLCJpZCI6NDYwOTUzLCJpc3MiOiJodHRwczovL2FwaS5jZXNpdW0uY29tIiwiYXVkIjoidW5kZWZpbmVkX2RlZmF1bHQiLCJpYXQiOjE3ODUxNDU1NDh9.d4FLu45azXAT9iDlQcrZTk85hA81c2053H7Hh6qdZr8;
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzN2YwODlkNS1jZjA5LTQ0ZjItOTczOC04ZjlhMWU5Zjc5ZTQiLCJpZCI6NDYwOTUzLCJpc3MiOiJodHRwczovL2FwaS5jZXNpdW0uY29tIiwiYXVkIjoidW5kZWZpbmVkX2RlZmF1bHQiLCJpYXQiOjE3ODUxNDU1NDh9.d4FLu45azXAT9iDlQcrZTk85hA81c2053H7Hh6qdZr8";
 
         const viewer = new Cesium.Viewer(mapRef.current, {
 
