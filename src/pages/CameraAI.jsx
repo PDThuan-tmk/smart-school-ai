@@ -130,15 +130,15 @@ export default function CameraAI() {
 
     const DETECTOR_SCORE = 0.65;
 
-    const MATCH_THRESHOLD = 0.60;
+    const MATCH_THRESHOLD = 0.50;
 
     const MIN_FACE_WIDTH = 90;
 
     const MIN_FACE_HEIGHT = 90;
 
-    const REQUIRED_FRAME = 4;
+    const REQUIRED_FRAME = 8;
 
-    const AVG_DISTANCE = 0.50;
+    const AVG_DISTANCE = 0.45;
 
     const ATTENDANCE_DELAY = 10000;
 
@@ -864,10 +864,11 @@ export default function CameraAI() {
 
                 // Distance quá lớn
 
-                if (
-                    bestMatch.distance >
-                    MATCH_THRESHOLD
-                ) {
+                if (bestMatch.distance > MATCH_THRESHOLD) {
+
+                    recognizeCounter.current[student.studentId] = 0;
+
+                    distanceHistory.current[student.studentId] = [];
 
                     continue;
 
@@ -919,59 +920,51 @@ export default function CameraAI() {
                 // FRAME COUNTER
                 // ========================================
 
-                recognizeCounter.current[
-                    student.studentId
-                ] = (
+                Object.keys(recognizeCounter.current).forEach(id => {
 
-                    recognizeCounter.current[
-                        student.studentId
-                    ]
+                    if (id !== student.studentId) {
 
-                    ||
+                        recognizeCounter.current[id] = 0;
 
-                    0
+                    }
 
-                ) + 1;
+                });
+
+                recognizeCounter.current[student.studentId] =
+                    (recognizeCounter.current[student.studentId] || 0) + 1;
 
                 // ========================================
                 // DISTANCE HISTORY
                 // ========================================
 
-                if (
+                // Xóa history của các học sinh khác
+                Object.keys(distanceHistory.current).forEach(id => {
 
-                    !distanceHistory.current[
-                        student.studentId
-                    ]
+                    if (id !== student.studentId) {
 
-                ) {
+                        distanceHistory.current[id] = [];
 
-                    distanceHistory.current[
-                        student.studentId
-                    ] = [];
+                    }
+
+                });
+
+                // Khởi tạo nếu chưa có
+                if (!distanceHistory.current[student.studentId]) {
+
+                    distanceHistory.current[student.studentId] = [];
 
                 }
 
-                distanceHistory.current[
-                    student.studentId
-                ].push(
+                // Thêm distance mới
+                distanceHistory.current[student.studentId].push(bestMatch.distance);
 
-                    bestMatch.distance
-
-                );
-
+                // Chỉ giữ REQUIRED_FRAME giá trị gần nhất
                 if (
-
-                    distanceHistory.current[
-                        student.studentId
-                    ].length >
-
+                    distanceHistory.current[student.studentId].length >
                     REQUIRED_FRAME
-
                 ) {
 
-                    distanceHistory.current[
-                        student.studentId
-                    ].shift();
+                    distanceHistory.current[student.studentId].shift();
 
                 }
 
@@ -1007,49 +1000,26 @@ export default function CameraAI() {
                 // TÍNH DISTANCE TRUNG BÌNH
                 // ========================================
 
-                const history =
+                const history = distanceHistory.current[student.studentId];
 
-                    distanceHistory.current[
-                        student.studentId
-                    ];
+                if (!history || history.length === 0) {
+                    continue;
+                }
 
                 const averageDistance =
-
-                    history.reduce(
-
-                        (a, b) => a + b,
-
-                        0
-
-                    ) / history.length;
+                    history.reduce((a, b) => a + b, 0) / history.length;
 
                 console.log(
-
                     "AVG",
-
                     student.studentId,
-
                     averageDistance
-
                 );
 
-                // Nếu chưa đủ chính xác
+                if (averageDistance > AVG_DISTANCE) {
 
-                if (
+                    recognizeCounter.current[student.studentId] = 0;
 
-                    averageDistance >
-
-                    AVG_DISTANCE
-
-                ) {
-
-                    recognizeCounter.current[
-                        student.studentId
-                    ] = 0;
-
-                    distanceHistory.current[
-                        student.studentId
-                    ] = [];
+                    distanceHistory.current[student.studentId] = [];
 
                     continue;
 
