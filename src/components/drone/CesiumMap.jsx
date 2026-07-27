@@ -1,64 +1,44 @@
 import { useEffect, useRef } from "react";
-
 import * as Cesium from "cesium";
-
 import "cesium/Build/Cesium/Widgets/widgets.css";
 
 export default function CesiumMap() {
+  const mapRef = useRef(null);
 
-    const mapRef = useRef(null);
+  useEffect(() => {
+    const viewer = new Cesium.Viewer(mapRef.current, {
+      animation: false,
+      timeline: false,
+      homeButton: true,
+      sceneModePicker: true,
+      navigationHelpButton: false,
+      geocoder: false,
+      baseLayerPicker: false,
+      shouldAnimate: true,
+      imageryProvider: new Cesium.UrlTemplateImageryProvider({
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      }),
+      terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+    });
 
-    useEffect(() => {
+    viewer.scene.globe.depthTestAgainstTerrain = true;
 
-        Cesium.Ion.defaultAccessToken =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzN2YwODlkNS1jZjA5LTQ0ZjItOTczOC04ZjlhMWU5Zjc5ZTQiLCJpZCI6NDYwOTUzLCJpc3MiOiJodHRwczovL2FwaS5jZXNpdW0uY29tIiwiYXVkIjoidW5kZWZpbmVkX2RlZmF1bHQiLCJpYXQiOjE3ODUxNDU1NDh9.d4FLu45azXAT9iDlQcrZTk85hA81c2053H7Hh6qdZr8";
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(108.804112, 15.120352, 2500),
+    });
 
-        const viewer = new Cesium.Viewer(mapRef.current, {
+    return () => {
+      viewer.destroy();
+    };
+  }, []);
 
-            animation: false,
-
-            timeline: false,
-
-            homeButton: true,
-
-            sceneModePicker: true,
-
-            navigationHelpButton: false,
-
-            geocoder: true,
-
-            baseLayerPicker: true,
-
-            shouldAnimate: true
-
-        });
-
-        viewer.scene.globe.depthTestAgainstTerrain = true;
-
-        return () => {
-
-            viewer.destroy();
-
-        };
-
-    }, []);
-
-    return (
-
-        <div
-
-            ref={mapRef}
-
-            style={{
-
-                width: "100%",
-
-                height: "100vh"
-
-            }}
-
-        />
-
-    );
-
+  return (
+    <div
+      ref={mapRef}
+      style={{
+        width: "100%",
+        height: "500px",
+      }}
+    />
+  );
 }
