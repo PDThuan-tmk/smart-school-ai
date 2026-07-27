@@ -23,66 +23,55 @@ export default function DroneMap() {
 
     useEffect(() => {
 
-        Cesium.Ion.defaultAccessToken =
-            "DÁN_ACCESS_TOKEN_CỦA_BẠN";
+      Cesium.Ion.defaultAccessToken =
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzN2YwODlkNS1jZjA5LTQ0ZjItOTczOC04ZjlhMWU5Zjc5ZTQiLCJpZCI6NDYwOTUzLCJpc3MiOiJodHRwczovL2FwaS5jZXNpdW0uY29tIiwiYXVkIjoidW5kZWZpbmVkX2RlZmF1bHQiLCJpYXQiOjE3ODUxNDU1NDh9.d4FLu45azXAT9iDlQcrZTk85hA81c2053H7Hh6qdZr8";
 
-        const viewer = new Cesium.Viewer(mapRef.current, {
+      async function initMap() {
 
-            animation: false,
+          const viewer = new Cesium.Viewer(mapRef.current, {
+              animation: false,
+              timeline: false,
+              homeButton: true,
+              sceneModePicker: true,
+              navigationHelpButton: false,
+              geocoder: true,
+              baseLayerPicker: true,
+              shouldAnimate: true
+          });
 
-            timeline: false,
+          viewerRef.current = viewer;
 
-            homeButton: true,
+          // Terrain 3D
+          viewer.terrainProvider =
+              await Cesium.createWorldTerrainAsync();
 
-            sceneModePicker: true,
+          viewer.scene.globe.depthTestAgainstTerrain = true;
 
-            navigationHelpButton: false,
+          droneEntity.current = viewer.entities.add({
+              name: "Drone SSAI-01",
+              position: Cesium.Cartesian3.fromDegrees(
+                  position.lng,
+                  position.lat,
+                  position.alt
+              ),
+              point: {
+                  pixelSize: 12,
+                  color: Cesium.Color.RED
+              }
+          });
 
-            geocoder: true,
+          viewer.flyTo(droneEntity.current);
+      }
 
-            baseLayerPicker: true,
+      initMap();
 
-            shouldAnimate: true
+      return () => {
+          if (viewerRef.current) {
+              viewerRef.current.destroy();
+          }
+      };
 
-        });
-
-        viewer.scene.globe.depthTestAgainstTerrain = true;
-
-        viewerRef.current = viewer;
-
-        droneEntity.current = viewer.entities.add({
-
-            name: "Drone SSAI-01",
-
-            position: Cesium.Cartesian3.fromDegrees(
-
-                position.lng,
-
-                position.lat,
-
-                position.alt
-
-            ),
-
-            point: {
-
-                pixelSize: 12,
-
-                color: Cesium.Color.RED
-
-            }
-
-        });
-
-        viewer.flyTo(droneEntity.current);
-
-        return () => {
-
-            viewer.destroy();
-
-        };
-
-    }, []);
+  }, []);
 
     useEffect(() => {
 
