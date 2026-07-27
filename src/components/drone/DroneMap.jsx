@@ -1,115 +1,205 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
-import { useEffect, useState } from "react";
-import MapUpdater from "./MapUpdater";
+import { useEffect, useRef, useState } from "react";
 
-delete L.Icon.Default.prototype._getIconUrl;
-
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+import * as Cesium from "cesium";
+import "cesium/Build/Cesium/Widgets/widgets.css";
 
 export default function DroneMap() {
 
-  const [position, setPosition] = useState([
-    15.120352,
-    108.804112
-  ]);
+    const viewerRef = useRef(null);
 
-  useEffect(() => {
+    const mapRef = useRef(null);
 
-    const timer = setInterval(() => {
+    const droneEntity = useRef(null);
 
-      setPosition(([lat, lng]) => [
-        lat + 0.00002,
-        lng + 0.00001
-      ]);
+    const [position, setPosition] = useState({
 
-    }, 1000);
+        lat: 15.120352,
 
-    return () => clearInterval(timer);
+        lng: 108.804112,
 
-  }, []);
+        alt: 20
 
-  return (
+    });
 
-    <div className="bg-white rounded-2xl shadow p-5">
+    useEffect(() => {
 
-      <h2 className="text-2xl font-bold mb-4">
-        🗺 Drone Map
-      </h2>
+        Cesium.Ion.defaultAccessToken =
+            "DÁN_ACCESS_TOKEN_CỦA_BẠN";
 
-      <MapContainer
-        center={position}
-        zoom={18}
-        style={{
-          height: "500px",
-          width: "100%"
-        }}
-      >
+        const viewer = new Cesium.Viewer(mapRef.current, {
 
-        <MapUpdater position={position} />
+            animation: false,
 
-        <TileLayer
-          attribution="&copy; OpenStreetMap"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+            timeline: false,
 
-        <Marker position={position}>
-          <Popup>
-            🚁 Drone SSAI-01
-          </Popup>
-        </Marker>
+            homeButton: true,
 
-      </MapContainer>
+            sceneModePicker: true,
 
-      <div className="mt-5 grid grid-cols-3 gap-4">
+            navigationHelpButton: false,
 
-        <div className="bg-slate-100 rounded-xl p-4">
+            geocoder: true,
 
-          <p className="text-gray-500">
-            Latitude
-          </p>
+            baseLayerPicker: true,
 
-          <h2 className="font-bold">
-            {position[0].toFixed(6)}
-          </h2>
+            shouldAnimate: true
+
+        });
+
+        viewer.scene.globe.depthTestAgainstTerrain = true;
+
+        viewerRef.current = viewer;
+
+        droneEntity.current = viewer.entities.add({
+
+            name: "Drone SSAI-01",
+
+            position: Cesium.Cartesian3.fromDegrees(
+
+                position.lng,
+
+                position.lat,
+
+                position.alt
+
+            ),
+
+            point: {
+
+                pixelSize: 12,
+
+                color: Cesium.Color.RED
+
+            }
+
+        });
+
+        viewer.flyTo(droneEntity.current);
+
+        return () => {
+
+            viewer.destroy();
+
+        };
+
+    }, []);
+
+    useEffect(() => {
+
+        const timer = setInterval(() => {
+
+            setPosition(prev => ({
+
+                lat: prev.lat + 0.00002,
+
+                lng: prev.lng + 0.00001,
+
+                alt: prev.alt
+
+            }));
+
+        }, 1000);
+
+        return () => clearInterval(timer);
+
+    }, []);
+
+    useEffect(() => {
+
+        if (!droneEntity.current) return;
+
+        droneEntity.current.position =
+
+            Cesium.Cartesian3.fromDegrees(
+
+                position.lng,
+
+                position.lat,
+
+                position.alt
+
+            );
+
+    }, [position]);
+
+    return (
+
+        <div className="bg-white rounded-2xl shadow p-5">
+
+            <h2 className="text-2xl font-bold mb-4">
+
+                🗺 Drone Map
+
+            </h2>
+
+            <div
+
+                ref={mapRef}
+
+                style={{
+
+                    width: "100%",
+
+                    height: "500px"
+
+                }}
+
+            />
+
+            <div className="mt-5 grid grid-cols-3 gap-4">
+
+                <div className="bg-slate-100 rounded-xl p-4">
+
+                    <p className="text-gray-500">
+
+                        Latitude
+
+                    </p>
+
+                    <h2 className="font-bold">
+
+                        {position.lat.toFixed(6)}
+
+                    </h2>
+
+                </div>
+
+                <div className="bg-slate-100 rounded-xl p-4">
+
+                    <p className="text-gray-500">
+
+                        Longitude
+
+                    </p>
+
+                    <h2 className="font-bold">
+
+                        {position.lng.toFixed(6)}
+
+                    </h2>
+
+                </div>
+
+                <div className="bg-slate-100 rounded-xl p-4">
+
+                    <p className="text-gray-500">
+
+                        Altitude
+
+                    </p>
+
+                    <h2 className="font-bold">
+
+                        {position.alt} m
+
+                    </h2>
+
+                </div>
+
+            </div>
 
         </div>
 
-        <div className="bg-slate-100 rounded-xl p-4">
-
-          <p className="text-gray-500">
-            Longitude
-          </p>
-
-          <h2 className="font-bold">
-            {position[1].toFixed(6)}
-          </h2>
-
-        </div>
-
-        <div className="bg-slate-100 rounded-xl p-4">
-
-          <p className="text-gray-500">
-            Altitude
-          </p>
-
-          <h2 className="font-bold">
-            20 m
-          </h2>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  );
+    );
 
 }
