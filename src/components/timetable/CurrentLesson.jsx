@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { listenTimetables } from "../../services/timetableService";
+import { listenTimetableEntries } from "../../services/timetableService";
 
 export default function CurrentLesson() {
 
@@ -79,7 +79,7 @@ export default function CurrentLesson() {
 
         const unsubscribe =
 
-            listenTimetables(setTimetables);
+            listenTimetableEntries(setTimetables);
 
         function updateCurrentPeriod() {
 

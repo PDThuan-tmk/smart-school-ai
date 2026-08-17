@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Drone from "./pages/Drone";
 import Attendance from "./pages/Attendance";
 import Login from "./pages/Login";
+import MissionPlanner from './pages/MissionPlanner';
 
 import Timetable from "./pages/Timetable";
 import Dashboard from "./pages/Dashboard";
@@ -42,6 +43,8 @@ export default function App() {
           path="/dashboard"
           element={<Dashboard />}
         />
+
+        <Route path="/mission" element={<MissionPlanner />} />
 
         <Route
           path="/students"
