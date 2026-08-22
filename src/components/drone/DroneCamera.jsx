@@ -260,9 +260,13 @@ export default function DroneCameraAI() {
             if (droneStateRef.current !== "SCANNING_ROOM") return;
 
             try {
+                // Đoạn kiểm tra readiness:
+                if (!isMountedRef.current || !imgRef.current || !faceMatcherRef.current) return;
+
+                // Thay videoRef.current bằng imgRef.current khi truyền vào faceapi.detectAllFaces
                 const detections = await faceapi
                     .detectAllFaces(
-                        videoRef.current,
+                        imgRef.current,
                         new faceapi.TinyFaceDetectorOptions({
                             inputSize: INPUT_SIZE,
                             scoreThreshold: DETECTOR_SCORE
@@ -271,10 +275,9 @@ export default function DroneCameraAI() {
                     .withFaceLandmarks()
                     .withFaceDescriptors();
 
-                if (!isMountedRef.current) return;
-
-                const videoWidth = videoRef.current.videoWidth || CAMERA_WIDTH;
-                const videoHeight = videoRef.current.videoHeight || CAMERA_HEIGHT;
+                // Lấy kích thước thực của hình ảnh
+                const videoWidth = imgRef.current.naturalWidth || CAMERA_WIDTH;
+                const videoHeight = imgRef.current.naturalHeight || CAMERA_HEIGHT;
 
                 const canvas = canvasRef.current;
                 if (canvas) {
@@ -371,29 +374,29 @@ export default function DroneCameraAI() {
     // =====================================================
 // CAMERA CONTROLLER (Đã tối ưu kết nối thẳng ESP32-CAM)
 // =====================================================
-    const openDroneCamera = useCallback(async () => {
-        if (!videoRef.current || !isMountedRef.current) return;
+    // Thay videoRef bằng imgRef ở phần khởi tạo
+    const imgRef = useRef(null);
 
-        // Trỏ trực tiếp đến luồng Stream của ESP32-CAM
+    const openDroneCamera = useCallback(async () => {
+        if (!imgRef.current || !isMountedRef.current) return;
+
+        // Địa chỉ IP stream của ESP32-CAM
         const ESP32_STREAM_URL = "http://192.168.1.113:81/stream"; 
 
         try {
             setCameraStatus("Đang kết nối...");
             
-            // Gán trực tiếp URL Stream cho thẻ Video
-            videoRef.current.crossOrigin = "anonymous";
-            videoRef.current.src = ESP32_STREAM_URL;
-            videoRef.current.autoplay = true;
-            videoRef.current.playsInline = true;
+            imgRef.current.crossOrigin = "anonymous";
+            imgRef.current.src = ESP32_STREAM_URL;
 
-            videoRef.current.onloadeddata = () => {
+            imgRef.current.onload = () => {
                 if (isMountedRef.current) {
                     setCameraStatus("Online");
-                    detectFacesOnDrone(); // Bắt đầu nhận diện AI khi có luồng video
+                    detectFacesOnDrone(); // Bắt đầu quét AI
                 }
             };
 
-            videoRef.current.onerror = (err) => {
+            imgRef.current.onerror = (err) => {
                 console.error("Lỗi kết nối Stream ESP32-CAM:", err);
                 if (isMountedRef.current) setCameraStatus("Offline");
             };
