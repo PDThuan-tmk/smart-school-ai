@@ -6,7 +6,7 @@ import { getStudentsByClass } from "../../services/studentService";
 import { markAttendance, getAttendance, resetAttendanceIfNewDay } from "../../services/attendanceService";
 
 // =====================================================
-// AI CONFIG & NGƯỠNG NHẬN DIỆN (Đưa ra ngoài component)
+// AI CONFIG & NGƯỠNG NHẬN DIỆN
 // =====================================================
 const CAMERA_WIDTH = 1920;
 const CAMERA_HEIGHT = 1080;
@@ -26,9 +26,9 @@ export default function DroneCameraAI() {
     // REFS & MOUNT CONTROL
     // =====================================================
     const isMountedRef = useRef(true);
-    const videoRef = useRef(null);
+    const imgRef = useRef(null); // Sử dụng Ref cho thẻ <img> thay vì <video>
     const canvasRef = useRef(null);
-    const cameraContainerRef = useRef(null); // Ref dùng để phóng to toàn màn hình (Fullscreen)
+    const cameraContainerRef = useRef(null);
     const detectInterval = useRef(null);
     const missionInterval = useRef(null);
 
@@ -68,14 +68,10 @@ export default function DroneCameraAI() {
     const [cameraStatus, setCameraStatus] = useState("Offline");
     const [isMissionActive, setIsMissionActive] = useState(true);
 
-    // Zoom trong khung video
     const [zoomLevel, setZoomLevel] = useState(1); 
-    
-    // Phóng to toàn bộ khung màn hình UI
     const [isExpanded, setIsExpanded] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    // Trạng thái điều hướng Drone
     const [droneMissionStatus, setDroneMissionStatus] = useState("Đang bay tới Waypoint...");
     const [currentClassroom, setCurrentClassroom] = useState("Chưa xác định");
     const [detectedDoorSign, setDetectedDoorSign] = useState(null);
@@ -118,7 +114,6 @@ export default function DroneCameraAI() {
         }
     };
 
-    // Lắng nghe sự kiện người dùng bấm ESC để thoát Fullscreen
     useEffect(() => {
         const handleFullscreenChange = () => {
             setIsFullscreen(!!document.fullscreenElement);
@@ -236,7 +231,7 @@ export default function DroneCameraAI() {
     }, [flightWaypoints]);
 
     // =====================================================
-    // NHẬN DIỆN KHUÔN MẶT TRÊN CAMERA DRONE
+    // NHẬN DIỆN KHUÔN MẶT TRÊN CAMERA DRONE (QUÉT QUA Thẻ <img>)
     // =====================================================
     const detectFacesOnDrone = useCallback(() => {
         if (detectInterval.current) {
@@ -245,8 +240,10 @@ export default function DroneCameraAI() {
         }
 
         detectInterval.current = setInterval(async () => {
-            if (!isMountedRef.current || !videoRef.current || !faceMatcherRef.current) return;
-            if (videoRef.current.readyState !== 4) return;
+            if (!isMountedRef.current || !imgRef.current || !faceMatcherRef.current) return;
+            
+            // Kiểm tra ảnh đã được tải xong khung hình chưa
+            if (!imgRef.current.complete || imgRef.current.naturalWidth === 0) return;
 
             // Tính FPS
             fpsCounter.current++;
@@ -260,10 +257,7 @@ export default function DroneCameraAI() {
             if (droneStateRef.current !== "SCANNING_ROOM") return;
 
             try {
-                // Đoạn kiểm tra readiness:
-                if (!isMountedRef.current || !imgRef.current || !faceMatcherRef.current) return;
-
-                // Thay videoRef.current bằng imgRef.current khi truyền vào faceapi.detectAllFaces
+                // Nhận diện khuôn mặt trực tiếp từ thẻ <img>
                 const detections = await faceapi
                     .detectAllFaces(
                         imgRef.current,
@@ -275,7 +269,6 @@ export default function DroneCameraAI() {
                     .withFaceLandmarks()
                     .withFaceDescriptors();
 
-                // Lấy kích thước thực của hình ảnh
                 const videoWidth = imgRef.current.naturalWidth || CAMERA_WIDTH;
                 const videoHeight = imgRef.current.naturalHeight || CAMERA_HEIGHT;
 
@@ -369,18 +362,11 @@ export default function DroneCameraAI() {
     }, [loadAttendance]);
 
     // =====================================================
-    // CAMERA CONTROLLER
+    // CAMERA CONTROLLER (Gán Luồng MJPEG Stream từ ESP32-CAM)
     // =====================================================
-    // =====================================================
-// CAMERA CONTROLLER (Đã tối ưu kết nối thẳng ESP32-CAM)
-// =====================================================
-    // Thay videoRef bằng imgRef ở phần khởi tạo
-    const imgRef = useRef(null);
-
     const openDroneCamera = useCallback(async () => {
         if (!imgRef.current || !isMountedRef.current) return;
 
-        // Địa chỉ IP stream của ESP32-CAM
         const ESP32_STREAM_URL = "http://192.168.1.113:81/stream"; 
 
         try {
@@ -392,7 +378,7 @@ export default function DroneCameraAI() {
             imgRef.current.onload = () => {
                 if (isMountedRef.current) {
                     setCameraStatus("Online");
-                    detectFacesOnDrone(); // Bắt đầu quét AI
+                    detectFacesOnDrone();
                 }
             };
 
@@ -449,9 +435,6 @@ export default function DroneCameraAI() {
             isMountedRef.current = false;
             if (detectInterval.current) clearInterval(detectInterval.current);
             if (missionInterval.current) clearInterval(missionInterval.current);
-            if (videoRef.current?.srcObject) {
-                videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-            }
         };
     }, [loadClassData, openDroneCamera, startDroneMissionLoop]);
 
@@ -601,7 +584,7 @@ export default function DroneCameraAI() {
             {/* CAMERA & RECOGNITION SECTION */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 
-                {/* KHUNG CAMERA - CÓ THỂ MỞ RỘNG (EXPAND) HOẶC BẬT FULLSCREEN */}
+                {/* KHUNG CAMERA */}
                 <div className={`transition-all duration-300 ${isExpanded ? "lg:col-span-3" : "lg:col-span-2"}`}>
                     <div 
                         ref={cameraContainerRef} 
@@ -616,7 +599,6 @@ export default function DroneCameraAI() {
                             
                             {/* BỘ ĐIỀU KHIỂN PHÓNG TO & THU PHÓNG */}
                             <div className="flex items-center gap-3">
-                                {/* 1. ZOOM ẢNH TRONG CANVAS/VIDEO */}
                                 <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                                     <span className="text-xs font-semibold text-gray-600">🔍 Zoom:</span>
                                     {[1, 1.5, 2, 2.5, 3].map((scale) => (
@@ -634,7 +616,6 @@ export default function DroneCameraAI() {
                                     ))}
                                 </div>
 
-                                {/* 2. NÚT MỞ RỘNG RỘNG TẢI KHUNG (GRID EXPAND) */}
                                 {!isFullscreen && (
                                     <button
                                         onClick={() => setIsExpanded(!isExpanded)}
@@ -645,7 +626,6 @@ export default function DroneCameraAI() {
                                     </button>
                                 )}
 
-                                {/* 3. NÚT BẬT/TẮT FULLSCREEN TOÀN MÀN HÌNH */}
                                 <button
                                     onClick={toggleFullscreen}
                                     className="px-3 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition shadow flex items-center gap-1"
@@ -656,18 +636,18 @@ export default function DroneCameraAI() {
                             </div>
                         </div>
 
-                        {/* KHUNG VIDEO CHÍNH */}
+                        {/* KHUNG VIDEO/MJPEG STREAM CHÍNH */}
                         <div className={`relative bg-black rounded-xl overflow-hidden ${isFullscreen ? "flex-1 my-2" : "aspect-video"}`}>
                             <div 
-                                className="w-full h-full transition-transform duration-200 ease-out origin-center"
+                                className="w-full h-full transition-transform duration-200 ease-out origin-center relative"
                                 style={{ transform: `scale(${zoomLevel})` }}
                             >
-                                <video
-                                    ref={videoRef}
-                                    autoPlay
-                                    muted
-                                    playsInline
+                                {/* ĐÃ THAY THẾ THẺ <video> BẰNG THẺ <img> DÀNH CHO LUỒNG STREAM ESP32-CAM */}
+                                <img
+                                    ref={imgRef}
+                                    alt="ESP32-CAM Live Stream"
                                     className="w-full h-full object-cover"
+                                    crossOrigin="anonymous"
                                 />
                                 <canvas
                                     ref={canvasRef}
@@ -675,7 +655,6 @@ export default function DroneCameraAI() {
                                 />
                             </div>
 
-                            {/* BÁO TRẠNG THÁI ZOOM */}
                             {zoomLevel > 1 && (
                                 <div className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-md backdrop-blur pointer-events-none font-medium border border-white/20">
                                     🔍 Đang zoom {zoomLevel}x
@@ -685,7 +664,7 @@ export default function DroneCameraAI() {
                     </div>
                 </div>
 
-                {/* HỌC SINH VỪA NHẬN DIỆN (TỰ ĐỘNG ẨN KHI Ơ CHẾ ĐỘ EXPAND HOẶC FULLSCREEN) */}
+                {/* HỌC SINH VỪA NHẬN DIỆN */}
                 {!isExpanded && !isFullscreen && (
                     <div className="lg:col-span-1">
                         <div className="bg-white rounded-xl shadow-lg p-5 border border-gray-100 h-full flex flex-col justify-between">
