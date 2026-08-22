@@ -368,34 +368,38 @@ export default function DroneCameraAI() {
     // =====================================================
     // CAMERA CONTROLLER
     // =====================================================
+    // =====================================================
+// CAMERA CONTROLLER (Đã tối ưu kết nối thẳng ESP32-CAM)
+// =====================================================
     const openDroneCamera = useCallback(async () => {
+        if (!videoRef.current || !isMountedRef.current) return;
+
+        // Trỏ trực tiếp đến luồng Stream của ESP32-CAM
+        const ESP32_STREAM_URL = "http://192.168.1.113:81/stream"; 
+
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: CAMERA_WIDTH, height: CAMERA_HEIGHT },
-                audio: false
-            });
-            if (videoRef.current && isMountedRef.current) {
-                videoRef.current.srcObject = stream;
-                await videoRef.current.play();
-                setCameraStatus("Online");
-                detectFacesOnDrone();
-            }
+            setCameraStatus("Đang kết nối...");
+            
+            // Gán trực tiếp URL Stream cho thẻ Video
+            videoRef.current.crossOrigin = "anonymous";
+            videoRef.current.src = ESP32_STREAM_URL;
+            videoRef.current.autoplay = true;
+            videoRef.current.playsInline = true;
+
+            videoRef.current.onloadeddata = () => {
+                if (isMountedRef.current) {
+                    setCameraStatus("Online");
+                    detectFacesOnDrone(); // Bắt đầu nhận diện AI khi có luồng video
+                }
+            };
+
+            videoRef.current.onerror = (err) => {
+                console.error("Lỗi kết nối Stream ESP32-CAM:", err);
+                if (isMountedRef.current) setCameraStatus("Offline");
+            };
         } catch (err) {
-            console.warn("Chuyển sang IP Stream do không tìm thấy Webcam/Drone Camera trực tiếp:", err);
-            if (videoRef.current && isMountedRef.current) {
-                videoRef.current.src = "http://192.168.4.1:81/stream"; 
-                videoRef.current.autoplay = true;
-                videoRef.current.playsInline = true;
-                videoRef.current.onloadeddata = () => {
-                    if (isMountedRef.current) {
-                        setCameraStatus("Online");
-                        detectFacesOnDrone();
-                    }
-                };
-                videoRef.current.onerror = () => {
-                    if (isMountedRef.current) setCameraStatus("Offline");
-                };
-            }
+            console.error("Không thể tải luồng video ESP32:", err);
+            if (isMountedRef.current) setCameraStatus("Offline");
         }
     }, [detectFacesOnDrone]);
 
